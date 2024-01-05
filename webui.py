@@ -15,15 +15,25 @@ import modules.advanced_parameters as advanced_parameters
 import modules.style_sorter as style_sorter
 import modules.meta_parser
 import args_manager
+import modules.config
 import copy
 
 from modules.sdxl_styles import legal_style_names
 from modules.private_logger import get_current_html_path
 from modules.ui_gradio_extensions import reload_javascript
 from modules.auth import auth_enabled, check_auth
+from ldm_patched.utils.path_utils import set_output_directory
+from ldm_patched.modules.args_parser import args as global_args
 
+def generate_clicked(request: gr.Request, *args):
+    
+    # Setup custom output directories per user if auth is enabled
+    if auth_enabled :
+        user = request.username
+        new_output_dir = global_args.output_path.replace("[user]",user)
+        modules.config.path_outputs = new_output_dir
+        set_output_directory(new_output_dir)
 
-def generate_clicked(*args):
     import ldm_patched.modules.model_management as model_management
 
     with model_management.interrupt_processing_mutex:
@@ -601,6 +611,6 @@ shared.gradio_root.launch(
     server_name=args_manager.args.listen,
     server_port=args_manager.args.port,
     share=args_manager.args.share,
-    auth=check_auth if args_manager.args.share and auth_enabled else None,
+    auth=check_auth if auth_enabled else None,
     blocked_paths=[constants.AUTH_FILENAME]
 )
